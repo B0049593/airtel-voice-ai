@@ -173,11 +173,45 @@ wss.on('connection', (clientWs) => {
     }
   }
 
+  // ── Language State ──
+  let currentLanguage = null;
+
+  function updateAgentLanguage(detectedLang) {
+    if (detectedLang && detectedLang !== currentLanguage) {
+      currentLanguage = detectedLang;
+      console.log(`[LANG] Language switch detected: ${detectedLang}`);
+      
+      // Push dynamic settings update to re-align the LLM and TTS
+      const updateSettings = {
+        type: 'Settings',
+        agent: {
+          language: detectedLang,
+          think: {
+            // Prepend a high-priority language instruction to the prompt
+            prompt: `[IMPORTANT: The user is now speaking in ${detectedLang}. You MUST respond in ${detectedLang} or Hinglish if the user is mixing languages. Mirror their style exactly.]\n\n${SYSTEM_PROMPT}`
+          }
+        }
+      };
+      
+      if (dgWs.readyState === WebSocket.OPEN) {
+        dgWs.send(JSON.stringify(updateSettings));
+        console.log(`[LANG] Pushed Settings update for: ${detectedLang}`);
+      }
+    }
+  }
+
   dgWs.on('message', (data, isBinary) => {
     if (!isBinary) {
       try {
         const msg = JSON.parse(data.toString());
         
+        // Track language switching from transcripts
+        if (msg.type === 'Transcript' && msg.is_final) {
+          if (msg.language) {
+            updateAgentLanguage(msg.language);
+          }
+        }
+
         if (msg.type === 'FunctionCallRequest') {
           console.log(`[STATE] FETCHING_DATA entered for: ${msg.function_name}`);
           activeFunctionCall = msg.id;
