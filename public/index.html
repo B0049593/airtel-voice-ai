@@ -438,10 +438,24 @@
       case 'ConversationText':
         log('AI', `${msg.role}: ${msg.content.substring(0, 40)}...`);
         addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
+        
+        // If it's a hold filler sent by server, speak it via browser TTS
+        if (msg.role === 'assistant' && (msg.subType === 'HOLD_REASSURANCE' || msg.subType === 'TIMEOUT_ESCALATION')) {
+          speakFiller(msg.content);
+        }
         break;
       case 'UserStartedSpeaking':
         log('STT', 'User speech detected (Barge-in)');
         stopPlayback();
+        stopFiller();
+        break;
+      case 'FunctionCallRequest':
+        log('STATE', 'FETCHING_DATA entered');
+        setHoldStatus(true, 'Checking details...');
+        break;
+      case 'FunctionCallResponse':
+        log('STATE', 'FETCHING_DATA completed');
+        setHoldStatus(false);
         break;
       case 'Error':
         log('ERROR', msg.message, true);
@@ -450,6 +464,34 @@
       default:
         log('WS', `Event received: ${msg.type}`);
     }
+  }
+
+  function setHoldStatus(active, text = '') {
+    if (active) {
+      dashboard.classList.add('speaking'); // Use speaking animation for hold
+      micLabel.textContent = text;
+    } else {
+      updateUIState();
+    }
+  }
+
+  // ── Filler Speech (Web Speech API) ──
+  function speakFiller(text) {
+    stopPlayback(); // Stop any overlapping agent audio
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    // Try to find a natural female voice
+    const voices = window.speechSynthesis.getVoices();
+    const premiumVoice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha'));
+    if (premiumVoice) utterance.voice = premiumVoice;
+    
+    window.speechSynthesis.speak(utterance);
+    log('TTS', 'Filler spoken via WebSpeech');
+  }
+
+  function stopFiller() {
+    window.speechSynthesis.cancel();
   }
 
   function addMessage(role, text) {
