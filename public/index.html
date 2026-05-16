@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airtel Voice AI</title>
+  <meta name="description" content="Airtel Voice AI Assistant powered by Deepgram">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --airtel-red: #ED1C24;
+      --airtel-red-dark: #C41920;
+      --airtel-red-light: #FF4C52;
+      --white: #FFFFFF;
+      --bg: #F5F5F5;
+      --text-dark: #1A1A1A;
+      --text-gray: #666666;
+      --text-light: #999999;
+      --border: #E5E5E5;
+      --shadow: rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--white);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 3px solid var(--airtel-red);
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .header-dot {
+      width: 12px; height: 12px;
+      background: var(--airtel-red);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+    .header h1 span { color: var(--airtel-red); }
+    .status-badge {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.3rem 0.75rem;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .status-badge.connected { background: #E8F5E9; color: #2E7D32; }
+    .status-badge.disconnected { background: #FFEBEE; color: #C62828; }
+    .status-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status-badge.connected .dot { background: #2E7D32; }
+    .status-badge.disconnected .dot { background: #C62828; }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 640px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      gap: 2rem;
+    }
+
+    /* ── Mic Area ── */
+    .mic-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .mic-wrapper {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pulse-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: var(--airtel-red);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.06s linear, opacity 0.06s linear;
+    }
+    .mic-btn {
+      position: relative;
+      z-index: 10;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      border: none;
+      background: var(--white);
+      color: var(--airtel-red);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    .mic-btn:hover { transform: scale(1.05); box-shadow: 0 6px 25px rgba(0,0,0,0.15); }
+    .mic-btn.active {
+      background: var(--airtel-red);
+      color: var(--white);
+      box-shadow: 0 4px 30px rgba(237, 28, 36, 0.4);
+    }
+    .mic-btn svg { width: 40px; height: 40px; }
+    .mic-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-gray);
+      transition: color 0.3s;
+    }
+    .mic-label.active { color: var(--airtel-red); font-weight: 600; }
+
+    /* ── Chat ── */
+    .chat {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      overflow-y: auto;
+      padding-bottom: 2rem;
+    }
+    .chat::-webkit-scrollbar { width: 4px; }
+    .chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg { display: flex; width: 100%; animation: fadeIn 0.3s ease; }
+    .msg.agent { justify-content: flex-start; }
+    .msg.user { justify-content: flex-end; }
+    .msg.system { justify-content: center; }
+
+    .bubble {
+      max-width: 85%;
+      padding: 0.85rem 1.1rem;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .agent .bubble {
+      background: var(--white);
+      color: var(--text-dark);
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .user .bubble {
+      background: var(--airtel-red);
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+    }
+    .system .bubble {
+      background: transparent;
+      box-shadow: none;
+      color: var(--text-light);
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+    .msg .label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.25rem;
+      color: var(--text-light);
+    }
+    .user .label { color: rgba(255,255,255,0.7); }
+
+    .listening-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--airtel-red);
+      font-weight: 500;
+      animation: fadeIn 0.3s ease;
+    }
+    .listening-dots {
+      display: flex; gap: 3px;
+    }
+    .listening-dots span {
+      width: 6px; height: 6px;
+      background: var(--airtel-red);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .listening-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .listening-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-8px); opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-dot"></div>
+    <h1><span>airtel</span> Voice AI</h1>
+    <div id="statusBadge" class="status-badge disconnected">
+      <span class="dot"></span>
+      <span id="statusText">Disconnected</span>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Microphone -->
+    <div class="mic-area">
+      <div class="mic-wrapper">
+        <div class="pulse-ring" id="ring1"></div>
+        <div class="pulse-ring" id="ring2"></div>
+        <button class="mic-btn" id="micBtn" aria-label="Start speaking">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+        </button>
+      </div>
+      <div class="mic-label" id="micLabel">Tap to speak</div>
+    </div>
+
+    <!-- Chat Log -->
+    <div class="chat" id="chat"></div>
+  </div>
+
+<script>
+(function() {
+  // ── DOM ──
+  const micBtn    = document.getElementById('micBtn');
+  const micLabel  = document.getElementById('micLabel');
+  const ring1     = document.getElementById('ring1');
+  const ring2     = document.getElementById('ring2');
+  const chatEl    = document.getElementById('chat');
+  const statusBadge = document.getElementById('statusBadge');
+  const statusText  = document.getElementById('statusText');
+
+  // ── State ──
+  let ws = null;
+  let isRecording = false;
+  let audioContext = null;
+  let mediaStream = null;
+  let processor = null;
+  let analyser = null;
+  let animFrame = null;
+
+  // Audio playback
+  let playCtx = null;
+  const OUTPUT_SAMPLE_RATE = 24000;
+
+  // ── WebSocket ──
+  function connectWs() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}`);
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = () => {
+      setStatus(true);
+      console.log('WebSocket connected');
+    };
+
+    ws.onmessage = (evt) => {
+      if (evt.data instanceof ArrayBuffer) {
+        // TTS audio from Deepgram → queue for playback
+        handleAudioData(evt.data);
+      } else {
+        try {
+          const msg = JSON.parse(evt.data);
+          handleEvent(msg);
+        } catch (e) {
+          console.log('Unknown message:', evt.data);
+        }
+      }
+    };
+
+    ws.onclose = () => {
+      setStatus(false);
+      console.log('WebSocket closed. Reconnecting in 3s...');
+      setTimeout(connectWs, 3000);
+    };
+
+    ws.onerror = (e) => {
+      console.error('WebSocket error:', e);
+    };
+  }
+
+  function setStatus(connected) {
+    statusBadge.className = 'status-badge ' + (connected ? 'connected' : 'disconnected');
+    statusText.textContent = connected ? 'Connected' : 'Disconnected';
+  }
+
+  // ── Deepgram Events ──
+  function handleEvent(msg) {
+    console.log('Event:', msg.type, msg);
+
+    switch (msg.type) {
+      case 'Welcome':
+        addMessage('system', 'Connected to Airtel Voice AI');
+        break;
+      case 'SettingsApplied':
+        addMessage('system', 'AI assistant is ready');
+        break;
+      case 'ConversationText':
+        if (msg.role === 'assistant') {
+          addMessage('agent', msg.content);
+        } else if (msg.role === 'user') {
+          addMessage('user', msg.content);
+        }
+        break;
+      case 'UserStartedSpeaking':
+        // User started — stop any agent audio playback (barge-in)
+        stopPlayback();
+        break;
+      case 'AgentThinking':
+        // Could show a thinking indicator
+        break;
+      case 'Error':
+      case 'ServerDisconnected':
+        addMessage('system', msg.message || 'Connection lost');
+        break;
+    }
+  }
+
+  // ── Chat ──
+  function addMessage(role, text) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'msg ' + role;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if (role === 'agent') {
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = 'Airtel AI';
+      bubble.appendChild(label);
+    }
+
+    const textNode = document.createElement('div');
+    textNode.textContent = text;
+    bubble.appendChild(textNode);
+    wrapper.appendChild(bubble);
+    chatEl.appendChild(wrapper);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  // ── Audio Capture (Linear16 PCM @ 24kHz) ──
+  const INPUT_SAMPLE_RATE = 24000;
+
+  async function startRecording() {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+      });
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === 'suspended') await audioContext.resume();
+
+      const source = audioContext.createMediaStreamSource(mediaStream);
+
+      // Analyser for volume visualization
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+
+      // ScriptProcessor to capture raw PCM
+      processor = audioContext.createScriptProcessor(4096, 1, 1);
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+      processor.onaudioprocess = (e) => {
+        if (!isRecording || !ws || ws.readyState !== WebSocket.OPEN) return;
+        const float32 = e.inputBuffer.getChannelData(0);
+        // Downsample to 24kHz
+        const ratio = audioContext.sampleRate / INPUT_SAMPLE_RATE;
+        let samples;
+        if (ratio > 1) {
+          const newLen = Math.floor(float32.length / ratio);
+          samples = new Float32Array(newLen);
+          for (let i = 0; i < newLen; i++) {
+            samples[i] = float32[Math.floor(i * ratio)];
+          }
+        } else {
+          samples = float32;
+        }
+        // Convert to Int16
+        const int16 = new Int16Array(samples.length);
+        for (let i = 0; i < samples.length; i++) {
+          const s = Math.max(-1, Math.min(1, samples[i]));
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        ws.send(int16.buffer);
+      };
+
+      isRecording = true;
+      micBtn.classList.add('active');
+      micLabel.textContent = 'Listening...';
+      micLabel.classList.add('active');
+      updatePulse();
+    } catch (err) {
+      console.error('Mic error:', err);
+      alert('Could not access the microphone. Please check permissions.');
+    }
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    if (processor) { processor.disconnect(); processor = null; }
+    if (audioContext && audioContext.state !== 'closed') { audioContext.close(); audioContext = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+    analyser = null;
+
+    // Reset pulse rings
+    ring1.style.transform = 'translate(-50%,-50%) scale(1)';
+    ring1.style.opacity = 0;
+    ring2.style.transform = 'translate(-50%,-50%) scale(1)';
+    ring2.style.opacity = 0;
+
+    micBtn.classList.remove('active');
+    micLabel.textContent = 'Tap to speak';
+    micLabel.classList.remove('active');
+  }
+
+  // ── Volume Pulse ──
+  function updatePulse() {
+    if (!isRecording || !analyser) return;
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) sum += data[i];
+    const vol = Math.min(sum / data.length / 40, 1);
+
+    ring1.style.transform = `translate(-50%,-50%) scale(${1 + vol * 0.5})`;
+    ring1.style.opacity = 0.15 + vol * 0.35;
+    ring2.style.transform = `translate(-50%,-50%) scale(${1 + vol * 0.8})`;
+    ring2.style.opacity = 0.1 + vol * 0.2;
+
+    animFrame = requestAnimationFrame(updatePulse);
+  }
+
+  // ── Audio Playback (Scheduled) ──
+  // Uses precise AudioContext scheduling to chain tiny chunks seamlessly
+  let nextPlayTime = 0;
+
+  function ensurePlayCtx() {
+    if (!playCtx || playCtx.state === 'closed') {
+      playCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
+      nextPlayTime = 0;
+    }
+    if (playCtx.state === 'suspended') {
+      playCtx.resume();
+    }
+    return playCtx;
+  }
+
+  function handleAudioData(buffer) {
+    const ctx = ensurePlayCtx();
+    
+    // Deepgram sends little-endian linear16 PCM. Use DataView for safe decoding.
+    const view = new DataView(buffer);
+    const length = Math.floor(buffer.byteLength / 2);
+    const float32 = new Float32Array(length);
+    for (let i = 0; i < length; i++) {
+      float32[i] = view.getInt16(i * 2, true) / 32768; // true = little-endian
+    }
+
+    const audioBuf = ctx.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
+    audioBuf.copyToChannel(float32, 0);
+    const src = ctx.createBufferSource();
+    src.buffer = audioBuf;
+    src.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (nextPlayTime < now) {
+      nextPlayTime = now + 0.1; // 100ms jitter buffer to smooth out network latency
+    }
+    src.start(nextPlayTime);
+    nextPlayTime += audioBuf.duration;
+  }
+
+  function stopPlayback() {
+    if (playCtx && playCtx.state !== 'closed') {
+      playCtx.close();
+      playCtx = null;
+    }
+    nextPlayTime = 0;
+  }
+
+  // ── Mic Button ──
+  micBtn.addEventListener('click', () => {
+    // Ensure AudioContext is allowed (user gesture)
+    ensurePlayCtx();
+
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  });
+
+  // ── Init ──
+  connectWs();
+})();
+</script>
+
+</body>
+</html>
