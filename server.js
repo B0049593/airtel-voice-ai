@@ -113,17 +113,21 @@ wss.on('connection', (clientWs) => {
         }
       },
       agent: {
-        language: 'hi', // Optimized for Hindi + Hinglish (English mix)
+        // We use null for language to trigger automatic language detection in the agent
+        language: null, 
         listen: {
           provider: {
             type: 'deepgram',
-            model: 'nova-3'
+            model: 'nova-3',
+            detect_language: true, // Enable automatic language detection
+            interim_results: true,  // For fast interruption detection
+            smart_format: true
           }
         },
         think: {
           provider: {
-            type: 'deepgram', // Using Deepgram as the LLM provider
-            model: 'llama-3-70b'
+            type: 'open_ai', // Finalized model: GPT-4o-mini
+            model: 'gpt-4o-mini'
           },
           prompt: SYSTEM_PROMPT,
           functions: [
@@ -156,7 +160,8 @@ wss.on('connection', (clientWs) => {
             type: 'eleven_labs',
             api_key: process.env.ELEVENLABS_API_KEY,
             voice_id: process.env.ELEVENLABS_VOICE_ID,
-            model_id: 'eleven_turbo_v2_5' // Turbo model for lowest latency
+            model_id: 'eleven_turbo_v2_5', // Finalized model for low latency
+            output_format: 'pcm_24000'
           }
         },
         greeting: "Welcome to Airtel. You are talking to Vaani. How may I help you today."
