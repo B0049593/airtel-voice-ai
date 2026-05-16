@@ -139,14 +139,32 @@
       transform: scale(0.4);
     }
 
-    .listening .ring { animation: pulseOut 2s infinite cubic-bezier(0.25, 1, 0.5, 1); }
-    .speaking .ring { animation: pulseOut 1.5s infinite cubic-bezier(0.25, 1, 0.5, 1); }
-    .ring:nth-child(2) { animation-delay: 0.5s; }
-    .ring:nth-child(3) { animation-delay: 1s; }
+    .listening .ring { opacity: 0; } /* Hide default ring animation in listening mode, wait for VAD */
+    
+    .user-speaking .ring { 
+      animation: pulseOut 1.5s infinite cubic-bezier(0.25, 1, 0.5, 1); 
+      background: var(--pulse-color);
+      opacity: 0.6;
+    }
+    
+    .ai-speaking .ring { 
+      animation: pulseOut 1.2s infinite cubic-bezier(0.25, 1, 0.5, 1); 
+      background: rgba(25, 118, 210, 0.2);
+      opacity: 0.6;
+    }
+
+    .processing .mic-visual-container {
+      animation: breathingGlow 2s infinite ease-in-out;
+    }
 
     @keyframes pulseOut {
       0% { transform: scale(0.4); opacity: 0.8; }
       100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    @keyframes breathingGlow {
+      0%, 100% { filter: drop-shadow(0 0 5px rgba(237, 28, 36, 0.1)); }
+      50% { filter: drop-shadow(0 0 15px rgba(237, 28, 36, 0.3)); }
     }
 
     .mic-btn {
@@ -170,7 +188,7 @@
       color: var(--white);
       box-shadow: 0 0 20px rgba(237, 28, 36, 0.4);
     }
-    .speaking .mic-btn.active {
+    .ai-speaking .mic-btn.active {
       background: #1976D2;
       box-shadow: 0 0 20px rgba(25, 118, 210, 0.4);
     }
@@ -352,10 +370,15 @@
   let audioContext = null;
   let mediaStream = null;
   let processor = null;
+  let analyser = null;
+  let vadDataArray = null;
+  let isUserActuallySpeaking = false;
   let wsConnected = false;
 
   // Audio playback
   let playCtx = null;
+  let playAnalyser = null;
+  let playDataArray = null;
   const OUTPUT_SAMPLE_RATE = 24000;
   let nextPlayTime = 0;
 
@@ -365,11 +388,9 @@
     const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const fullMsg = `[${tag}] ${message}`;
     
-    // Console log
     if (isError) console.error(fullMsg);
     else console.log(`%c${time} %c${fullMsg}`, 'color: #888', 'color: #00FF00');
 
-    // Panel log
     const entry = document.createElement('div');
     entry.className = 'debug-log-entry';
     entry.innerHTML = `<span style="color:#888">${time}</span> <span class="debug-tag" style="color:${isError?'#FF4C52':'#00FF00'}">[${tag}]</span> <span class="debug-msg">${message}</span>`;
@@ -382,6 +403,68 @@
     const isCollapsed = debugPanel.classList.toggle('collapsed');
     debugChevron.textContent = isCollapsed ? '▴' : '▾';
   });
+
+  // ── Real-time Voice Activity Detection (VAD) ──
+  function startVADLoop() {
+    if (!analyser) return;
+    
+    const checkVAD = () => {
+      if (!isListening) {
+        if (isUserActuallySpeaking) {
+          isUserActuallySpeaking = false;
+          log('VAD', 'Voice activity ended');
+          updateUIState();
+        }
+        return;
+      }
+
+      analyser.getByteFrequencyData(vadDataArray);
+      let sum = 0;
+      for (let i = 0; i < vadDataArray.length; i++) sum += vadDataArray[i];
+      const average = sum / vadDataArray.length;
+
+      const isSpeakingNow = average > 18;
+
+      if (isSpeakingNow !== isUserActuallySpeaking) {
+        isUserActuallySpeaking = isSpeakingNow;
+        log('VAD', isUserActuallySpeaking ? 'User speech detected' : 'User speech ended');
+        updateUIState();
+      }
+
+      if (isListening) requestAnimationFrame(checkVAD);
+    };
+    
+    requestAnimationFrame(checkVAD);
+  }
+
+  // ── AI Playback VAD ──
+  function monitorAIPlayback() {
+    if (!playAnalyser) return;
+    
+    const checkAI = () => {
+      if (!isAgentSpeaking) return;
+
+      playAnalyser.getByteFrequencyData(playDataArray);
+      let sum = 0;
+      for (let i = 0; i < playDataArray.length; i++) sum += playDataArray[i];
+      const average = sum / playDataArray.length;
+
+      const isActuallySpeaking = average > 5; 
+      
+      const hasClass = dashboard.classList.contains('ai-speaking');
+      if (isActuallySpeaking && !hasClass) {
+        dashboard.classList.add('ai-speaking');
+        log('UI', 'AI Pulse animation ON');
+      } else if (!isActuallySpeaking && hasClass) {
+        dashboard.classList.remove('ai-speaking');
+        log('UI', 'AI Pulse animation OFF');
+      }
+
+      if (isAgentSpeaking) requestAnimationFrame(checkAI);
+    };
+    
+    requestAnimationFrame(checkAI);
+  }
 
   // ── WebSocket ──
   function connectWs() {
@@ -438,8 +521,6 @@
       case 'ConversationText':
         log('AI', `${msg.role}: ${msg.content.substring(0, 40)}...`);
         addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
-        
-        // If it's a hold filler sent by server, speak it via browser TTS
         if (msg.role === 'assistant' && (msg.subType === 'HOLD_REASSURANCE' || msg.subType === 'TIMEOUT_ESCALATION')) {
           speakFiller(msg.content);
         }
@@ -468,31 +549,30 @@
 
   function setHoldStatus(active, text = '') {
     if (active) {
-      dashboard.classList.add('speaking'); // Use speaking animation for hold
+      dashboard.classList.remove('listening', 'user-speaking', 'ai-speaking');
+      dashboard.classList.add('processing');
       micLabel.textContent = text;
+      log('UI', 'Processing animation (Glow) ON');
     } else {
+      dashboard.classList.remove('processing');
       updateUIState();
     }
   }
 
-  // ── Filler Speech (Web Speech API) ──
+  // ── Filler Speech ──
   function speakFiller(text) {
-    stopPlayback(); // Stop any overlapping agent audio
+    stopPlayback();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
-    // Try to find a natural female voice
     const voices = window.speechSynthesis.getVoices();
     const premiumVoice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha'));
     if (premiumVoice) utterance.voice = premiumVoice;
-    
     window.speechSynthesis.speak(utterance);
     log('TTS', 'Filler spoken via WebSpeech');
   }
 
-  function stopFiller() {
-    window.speechSynthesis.cancel();
-  }
+  function stopFiller() { window.speechSynthesis.cancel(); }
 
   function addMessage(role, text) {
     const wrapper = document.createElement('div');
@@ -516,8 +596,13 @@
       
       audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       const source = audioContext.createMediaStreamSource(mediaStream);
-      processor = audioContext.createScriptProcessor(4096, 1, 1);
       
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      vadDataArray = new Uint8Array(analyser.frequencyBinCount);
+      source.connect(analyser);
+
+      processor = audioContext.createScriptProcessor(4096, 1, 1);
       processor.onaudioprocess = (e) => {
         if (!isListening || !ws || ws.readyState !== WebSocket.OPEN) return;
         const float32 = e.inputBuffer.getChannelData(0);
@@ -533,7 +618,8 @@
       processor.connect(audioContext.destination);
 
       isListening = true;
-      log('STATE', 'Listening mode active');
+      log('STATE', 'Listening started');
+      startVADLoop();
       updateUIState();
     } catch (err) {
       log('ERROR', 'Microphone access failed', true);
@@ -553,6 +639,7 @@
     audioBuf.copyToChannel(float32, 0);
     const src = ctx.createBufferSource();
     src.buffer = audioBuf;
+    src.connect(playAnalyser);
     src.connect(ctx.destination);
 
     const now = ctx.currentTime;
@@ -566,6 +653,7 @@
     if (!isAgentSpeaking) {
       isAgentSpeaking = true;
       log('TTS', 'Vaani started speaking');
+      monitorAIPlayback();
       updateUIState();
     }
 
@@ -583,6 +671,9 @@
   function ensurePlayCtx() {
     if (!playCtx || playCtx.state === 'closed') {
       playCtx = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
+      playAnalyser = playCtx.createAnalyser();
+      playAnalyser.fftSize = 256;
+      playDataArray = new Uint8Array(playAnalyser.frequencyBinCount);
       nextPlayTime = 0;
     }
     if (playCtx.state === 'suspended') playCtx.resume();
@@ -594,6 +685,7 @@
       log('TTS', 'Playback interrupted');
       playCtx.close(); 
       playCtx = null; 
+      playAnalyser = null;
     }
     nextPlayTime = 0;
     isAgentSpeaking = false;
@@ -604,7 +696,9 @@
     log('STATE', 'Resetting to Idle');
     isListening = false;
     isAgentSpeaking = false;
+    isUserActuallySpeaking = false;
     if (processor) { processor.disconnect(); processor = null; }
+    if (analyser) { analyser.disconnect(); analyser = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
     if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
     stopPlayback();
@@ -612,19 +706,25 @@
   }
 
   function updateUIState() {
-    dashboard.classList.remove('listening', 'speaking');
+    dashboard.classList.remove('listening', 'user-speaking', 'ai-speaking', 'processing');
     micBtn.classList.remove('active');
     
     if (!isListening) {
       micLabel.textContent = 'Tap to speak';
+      log('UI', 'Pulse animation OFF (Idle)');
     } else if (isAgentSpeaking) {
-      dashboard.classList.add('speaking');
       micBtn.classList.add('active');
       micLabel.textContent = 'Vaani is speaking...';
+    } else if (isUserActuallySpeaking) {
+      dashboard.classList.add('listening', 'user-speaking');
+      micBtn.classList.add('active');
+      micLabel.textContent = 'Listening...';
+      log('UI', 'Pulse animation ON (User Speaking)');
     } else {
       dashboard.classList.add('listening');
       micBtn.classList.add('active');
-      micLabel.textContent = 'Listening...';
+      micLabel.textContent = 'Waiting for speech...';
+      log('UI', 'Pulse animation OFF (Silence)');
     }
   }
 
