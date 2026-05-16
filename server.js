@@ -113,7 +113,7 @@ wss.on('connection', (clientWs) => {
         }
       },
       agent: {
-        language: 'en',
+        language: 'hi', // Optimized for Hindi + Hinglish (English mix)
         listen: {
           provider: {
             type: 'deepgram',
