@@ -122,8 +122,8 @@ wss.on('connection', (clientWs) => {
         },
         think: {
           provider: {
-            type: 'open_ai',
-            model: 'gpt-4o-mini'
+            type: 'deepgram', // Using Deepgram as the LLM provider
+            model: 'llama-3-70b'
           },
           prompt: SYSTEM_PROMPT,
           functions: [
@@ -153,9 +153,10 @@ wss.on('connection', (clientWs) => {
         },
         speak: {
           provider: {
-            type: 'deepgram',
-            model: 'aura-2-andromeda-en',
-            speed: 0.85 // Slightly slower for a more premium, calm feel
+            type: 'eleven_labs',
+            api_key: process.env.ELEVENLABS_API_KEY,
+            voice_id: process.env.ELEVENLABS_VOICE_ID,
+            model_id: 'eleven_turbo_v2_5' // Turbo model for lowest latency
           }
         },
         greeting: "Welcome to Airtel. You are talking to Vaani. How may I help you today."
