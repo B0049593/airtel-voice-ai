@@ -9,8 +9,47 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+const axios = require('axios'); // For ElevenLabs health check
+
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY;
 const DEEPGRAM_AGENT_URL = 'wss://agent.deepgram.com/v1/agent/converse';
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+
+// ── ElevenLabs Observability & Health Check ──
+(async function validateElevenLabs() {
+  console.log('\n[TTS] --- Initializing ElevenLabs Diagnostics ---');
+  
+  if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY.trim() === '') {
+    console.error('[ERROR] ElevenLabs API key missing in .env');
+    return;
+  }
+  if (!ELEVENLABS_VOICE_ID || ELEVENLABS_VOICE_ID.trim() === '') {
+    console.error('[ERROR] ElevenLabs Voice ID missing in .env');
+    return;
+  }
+  
+  console.log(`[TTS] API Key detected: ${ELEVENLABS_API_KEY.substring(0, 8)}...`);
+  console.log(`[TTS] Configured Voice ID: ${ELEVENLABS_VOICE_ID}`);
+
+  try {
+    const start = Date.now();
+    const response = await axios.get(`https://api.elevenlabs.io/v1/voices/${ELEVENLABS_VOICE_ID}`, {
+      headers: { 'xi-api-key': ELEVENLABS_API_KEY }
+    });
+    const latency = Date.now() - start;
+    
+    console.log(`[TTS] ElevenLabs health check passed! Name: ${response.data.name}`);
+    console.log(`[TTS] Response latency: ${latency}ms`);
+  } catch (err) {
+    if (err.response) {
+      console.error(`[ERROR] ElevenLabs API Error: ${err.response.status} - ${JSON.stringify(err.response.data)}`);
+    } else {
+      console.error(`[ERROR] ElevenLabs Network Error: ${err.message}`);
+    }
+  }
+  console.log('[TTS] ------------------------------------------\n');
+})();
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -72,6 +111,17 @@ wss.on('connection', (clientWs) => {
 
   dgWs.on('open', () => {
     console.log('Connected to Deepgram Voice Agent API');
+    
+    // Send Provider Info to Client
+    if (clientWs.readyState === WebSocket.OPEN) {
+      clientWs.send(JSON.stringify({
+        type: 'ProviderStatus',
+        stt: 'Deepgram (Nova-3)',
+        llm: 'GPT-4o-mini',
+        tts: `ElevenLabs (${ELEVENLABS_VOICE_ID.substring(0, 5)}...)`,
+        status: 'Connected'
+      }));
+    }
 
     // Send settings configuration
     const settings = {

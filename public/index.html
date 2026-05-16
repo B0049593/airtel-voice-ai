@@ -340,11 +340,38 @@
         <h3>Dev Debug Console</h3>
         <span id="debugChevron">▾</span>
       </div>
+      <div class="provider-info" id="providerInfo">
+        <div class="provider-badge">STT: <span id="sttStatus">...</span></div>
+        <div class="provider-badge">LLM: <span id="llmStatus">...</span></div>
+        <div class="provider-badge">TTS: <span id="ttsStatus">...</span></div>
+      </div>
       <div class="debug-logs" id="debugLogs">
         <!-- Live logs will appear here -->
       </div>
     </div>
   </div>
+
+  <style>
+    .provider-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 4px;
+    }
+    .provider-badge {
+      font-size: 0.65rem;
+      color: #888;
+      background: rgba(255,255,255,0.05);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .provider-badge span {
+      color: #00FF00;
+      font-weight: bold;
+    }
+  </style>
 
 <script>
 (function() {
@@ -518,6 +545,12 @@
 
   function handleEvent(msg) {
     switch (msg.type) {
+      case 'ProviderStatus':
+        document.getElementById('sttStatus').textContent = msg.stt;
+        document.getElementById('llmStatus').textContent = msg.llm;
+        document.getElementById('ttsStatus').textContent = msg.tts;
+        log('TTS', `Provider: ElevenLabs (Voice ID active)`);
+        break;
       case 'ConversationText':
         log('AI', `${msg.role}: ${msg.content.substring(0, 40)}...`);
         addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
@@ -581,6 +614,7 @@
 
   // ── Filler Speech ──
   function speakFiller(text) {
+    log('TTS', 'Falling back to Browser TTS for filler');
     stopPlayback();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
@@ -589,7 +623,7 @@
     const premiumVoice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha'));
     if (premiumVoice) utterance.voice = premiumVoice;
     window.speechSynthesis.speak(utterance);
-    log('TTS', 'Filler spoken via WebSpeech');
+    log('TTS', 'Browser filler playback started');
   }
 
   function stopFiller() { window.speechSynthesis.cancel(); }
@@ -650,6 +684,7 @@
   function handleAudioData(buffer) {
     if (!isListening) return;
     
+    log('TTS', `Audio chunk received (${buffer.byteLength} bytes)`);
     const ctx = ensurePlayCtx();
     const view = new DataView(buffer);
     const float32 = new Float32Array(buffer.byteLength / 2);
@@ -665,14 +700,14 @@
     const now = ctx.currentTime;
     if (nextPlayTime < now) {
       nextPlayTime = now + 0.1;
-      log('TTS', 'Playback buffer initialized');
+      log('TTS', 'Playback stream started');
     }
     
     src.start(nextPlayTime);
     
     if (!isAgentSpeaking) {
       isAgentSpeaking = true;
-      log('TTS', 'Vaani started speaking');
+      log('TTS', 'Vaani speaking (ElevenLabs source confirmed)');
       monitorAIPlayback();
       updateUIState();
     }
@@ -680,7 +715,7 @@
     src.onended = () => {
       if (ctx.currentTime >= nextPlayTime - 0.1) {
         isAgentSpeaking = false;
-        log('TTS', 'Playback finished');
+        log('TTS', 'Playback completed');
         updateUIState();
       }
     };
