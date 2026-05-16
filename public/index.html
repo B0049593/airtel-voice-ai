@@ -525,8 +525,21 @@
           speakFiller(msg.content);
         }
         break;
+      case 'SpeechStarted':
+        log('VAD', 'Customer started speaking');
+        dashboard.classList.add('user-speaking');
+        stopPlayback();
+        stopFiller();
+        break;
+      case 'SpeechEnded':
+        log('VAD', 'Speech completion detected (Waiting for endpoint)');
+        break;
+      case 'UtteranceEnd':
+        log('VAD', 'Final endpoint detected. Processing response...');
+        dashboard.classList.remove('user-speaking');
+        break;
       case 'UserStartedSpeaking':
-        log('STT', 'User speech detected (Barge-in)');
+        log('STT', 'Barge-in detected');
         stopPlayback();
         stopFiller();
         break;
@@ -543,7 +556,14 @@
         addMessage('system', 'Error: ' + msg.message);
         break;
       default:
-        log('WS', `Event received: ${msg.type}`);
+        // Log transcriptions for debugging
+        if (msg.type === 'Transcript') {
+          const isFinal = msg.is_final;
+          log('STT', `${isFinal ? 'Final' : 'Interim'}: "${msg.text}"`);
+          if (msg.language) log('LANG', `Detected: ${msg.language}`);
+        } else {
+          log('WS', `Event: ${msg.type}`);
+        }
     }
   }
 
