@@ -462,6 +462,15 @@
       }
     }
     else if (msg.type === 'ConversationText') {
+      if (msg.role === 'user') {
+        log('EVENT', 'User speech transcription finalized');
+        setState(STATES.THINKING);
+      } else if (msg.role === 'assistant') {
+        log('EVENT', 'Agent response transcription started');
+        ignoreAudio = false;
+        isAgentSpeaking = true;
+        setState(STATES.AI_SPEAKING);
+      }
       addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
     }
   }
