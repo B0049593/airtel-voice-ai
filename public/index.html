@@ -345,6 +345,8 @@
   let playCtx = null;
   const OUTPUT_SAMPLE_RATE = 24000;
   let nextPlayTime = 0;
+  let activeSources = [];
+  let ignoreAudio = false;
 
   // Visualizer state variables
   let smoothedUserVolume = 0;
@@ -434,13 +436,34 @@
   }
 
   function handleEvent(msg) {
-    if (msg.type === 'SpeechStarted') { 
+    if (msg.type === 'UserStartedSpeaking' || msg.type === 'SpeechStarted') { 
+      log('EVENT', 'User started speaking (Barge-in detected)');
+      ignoreAudio = true;
       stopPlayback(); 
       isGreetingMode = false;
       isAgentSpeaking = false;
       setState(STATES.USER_SPEAKING); 
     }
-    else if (msg.type === 'ConversationText') addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
+    else if (msg.type === 'AgentThinking') {
+      log('EVENT', 'Agent is thinking');
+      ignoreAudio = false;
+      setState(STATES.THINKING);
+    }
+    else if (msg.type === 'AgentStartedSpeaking') {
+      log('EVENT', 'Agent started speaking');
+      ignoreAudio = false;
+      isAgentSpeaking = true;
+      setState(STATES.AI_SPEAKING);
+    }
+    else if (msg.type === 'AgentAudioDone') {
+      log('EVENT', 'Agent finished generating audio');
+      if (activeSources.length === 0) {
+        setState(STATES.LISTENING);
+      }
+    }
+    else if (msg.type === 'ConversationText') {
+      addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
+    }
   }
 
   function addMessage(role, text) {
@@ -461,7 +484,14 @@
 
   async function startListening() {
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      log('AUDIO', 'Requesting microphone access with echo cancellation');
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
       audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       const source = audioContext.createMediaStreamSource(mediaStream);
       analyser = audioContext.createAnalyser();
@@ -472,28 +502,42 @@
       source.connect(processor);
       processor.connect(audioContext.destination);
       processor.onaudioprocess = (e) => {
-        if (!isListening || isPaused || isGreetingMode || !ws || ws.readyState !== WebSocket.OPEN) return;
+        // Continuous mic streaming: removed isGreetingMode check to allow barge-in during greeting
+        if (!isListening || isPaused || !ws || ws.readyState !== WebSocket.OPEN) return;
         const float32 = e.inputBuffer.getChannelData(0);
         const int16 = new Int16Array(float32.length);
         for (let i = 0; i < float32.length; i++) int16[i] = Math.max(-1, Math.min(1, float32[i])) * 0x7FFF;
         ws.send(int16.buffer);
       };
       isListening = true;
-    } catch (e) { log('ERROR', 'Mic failed', true); }
+    } catch (e) {
+      log('ERROR', 'Mic failed: ' + e.message, true);
+    }
   }
 
   function handleAudioData(buffer) {
+    if (ignoreAudio || isPaused) {
+      log('AUDIO', 'Discarded stale/in-flight audio buffer');
+      return;
+    }
+
     if (!playCtx) { 
       playCtx = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE }); 
       aiAnalyser = playCtx.createAnalyser();
       aiAnalyser.fftSize = 256;
       nextPlayTime = 0; 
     }
+    
+    if (playCtx.state === 'suspended') {
+      playCtx.resume();
+    }
+
     const audioBuf = playCtx.createBuffer(1, buffer.byteLength / 2, OUTPUT_SAMPLE_RATE);
     const float32 = new Float32Array(buffer.byteLength / 2);
     const view = new DataView(buffer);
     for (let i = 0; i < float32.length; i++) float32[i] = view.getInt16(i * 2, true) / 32768;
     audioBuf.copyToChannel(float32, 0);
+    
     const src = playCtx.createBufferSource();
     src.buffer = audioBuf;
     
@@ -505,25 +549,41 @@
     if (nextPlayTime < now) nextPlayTime = now;
     src.start(nextPlayTime);
     
-    if (isGreetingMode) setState(STATES.PLAYING_GREETING);
-    else {
+    activeSources.push(src);
+    
+    if (isGreetingMode) {
+      setState(STATES.PLAYING_GREETING);
+    } else {
       isAgentSpeaking = true;
       setState(STATES.AI_SPEAKING);
     }
 
     src.onended = () => {
-      if (playCtx.currentTime >= nextPlayTime - 0.1) {
-        if (isGreetingMode) { isGreetingMode = false; setState(STATES.LISTENING); }
-        else if (!isPaused) setState(STATES.LISTENING);
+      const idx = activeSources.indexOf(src);
+      if (idx > -1) activeSources.splice(idx, 1);
+
+      if (activeSources.length === 0 && currentState !== STATES.USER_SPEAKING && !isPaused) {
+        if (isGreetingMode) {
+          isGreetingMode = false;
+        }
+        setState(STATES.LISTENING);
       }
     };
     nextPlayTime += audioBuf.duration;
   }
 
   function stopPlayback() {
-    if (playCtx) { playCtx.close(); playCtx = null; }
+    log('AUDIO', `Stopping playback of ${activeSources.length} active/scheduled audio sources`);
+    activeSources.forEach(src => {
+      try {
+        src.stop();
+      } catch (e) {
+        // Already stopped or not started
+      }
+    });
+    activeSources = [];
+    nextPlayTime = 0;
     isAgentSpeaking = false;
-    aiAnalyser = null;
   }
 
   function resetToIdle() {
@@ -531,12 +591,17 @@
     isGreetingMode = false;
     isPaused = false;
     isAgentSpeaking = false;
+    ignoreAudio = false;
     if (ws) { ws.close(); ws = null; }
     if (processor) { processor.disconnect(); processor = null; }
     if (analyser) { analyser.disconnect(); analyser = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
     if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
     stopPlayback();
+    if (playCtx) {
+      playCtx.close();
+      playCtx = null;
+    }
     setState(STATES.IDLE);
   }
 
