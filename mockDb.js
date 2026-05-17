@@ -6,7 +6,7 @@ function generateMobile() {
 }
 
 const indianNames = [
-  "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Riya", "Diya", "Aanya", 
+  "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Riya", "Diya", "Aanya",
   "Priya Sharma", "Rahul Verma", "Sneha Iyer", "Amit Patel", "Neha Gupta", "Vikram Singh"
 ];
 
@@ -15,7 +15,7 @@ for (let i = 0; i < 50; i++) {
   const isExhausted = Math.random() > 0.8;
   const isBarred = Math.random() > 0.95;
   const plan = Math.random() > 0.5 ? { name: "2GB Daily Plan", price: 349, validity: "28 days", ott: ["Airtel Xstream Play"] } : { name: "3GB Daily Plan", price: 499, validity: "28 days", ott: ["Airtel Xstream Play", "Amazon Prime"] };
-  
+
   customers.push({
     mobile_number: generateMobile(),
     name: indianNames[Math.floor(Math.random() * indianNames.length)],
@@ -62,8 +62,8 @@ for (let i = 0; i < 50; i++) {
 
 // Add one specific hardcoded customer so we have a known number for testing
 customers.push({
-  mobile_number: "9876543210",
-  name: "Priya Sharma",
+  mobile_number: "9810619085",
+  name: "Siddharth Agarwal",
   account_type: "postpaid",
   active_plan_name: "Infinity 549",
   active_plan_price: 549,
@@ -73,7 +73,7 @@ customers.push({
   bill_due_date: "May 20th",
   bill_breakup: { base: 549, extra: 0, tax: 98 },
   account_status: "active",
-  email: "priya.sharma@example.com",
+  email: "siddharth.agarwal@airtel.com",
   ott_benefits: ["Amazon Prime", "Airtel Xstream Play"],
   complaints: [],
   outage: false

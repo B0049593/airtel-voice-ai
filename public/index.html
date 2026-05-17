@@ -3,30 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Airtel Voice AI</title>
-  <meta name="description" content="Airtel Voice AI Assistant powered by Deepgram">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Airtel Vaani 2.0 | Voice AI Assistant</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --airtel-red: #ED1C24;
-      --airtel-red-dark: #C41920;
-      --airtel-red-light: #FF4C52;
-      --white: #FFFFFF;
-      --bg: #F8F9FA;
-      --text-dark: #1A1A1A;
-      --text-gray: #4A4A4A;
-      --text-light: #8E8E93;
-      --border: #E5E5EA;
-      --shadow: rgba(0, 0, 0, 0.05);
-      --pulse-color: rgba(237, 28, 36, 0.2);
+      --bg-dark: #0F0F0F;
+      --card-bg: #1A1A1A;
+      --text-white: #FFFFFF;
+      --text-gray: #B0B0B0;
+      --border: rgba(255, 255, 255, 0.1);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: var(--bg);
-      color: var(--text-dark);
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-white);
       height: 100vh;
       overflow: hidden;
       display: flex;
@@ -34,772 +28,683 @@
     }
 
     /* ── Header ── */
-    .header {
-      background: var(--white);
-      height: 64px;
-      padding: 0 2rem;
+    header {
+      padding: 20px 40px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 1rem;
       border-bottom: 1px solid var(--border);
-      z-index: 100;
-      flex-shrink: 0;
     }
-    .header-logo {
-      height: 28px;
-      width: auto;
-      object-fit: contain;
-    }
-    .header h1 {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--text-dark);
-      letter-spacing: -0.01em;
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 10px;
     }
-    .header h1 span { color: var(--airtel-red); font-weight: 800; }
-    
+    .logo-red { color: var(--airtel-red); }
     .status-badge {
-      margin-left: auto;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.35rem 0.75rem;
+      padding: 6px 12px;
       border-radius: 20px;
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      text-transform: uppercase;
+      gap: 8px;
     }
-    .status-badge.connected { background: #E3F2FD; color: #1976D2; }
-    .status-badge.disconnected { background: #FFF5F5; color: #E53935; }
-    .status-badge .dot { width: 8px; height: 8px; border-radius: 50%; }
-    .status-badge.connected .dot { background: #1976D2; animation: badgePulse 2s infinite; }
-    .status-badge.disconnected .dot { background: #E53935; }
-
-    @keyframes badgePulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(25, 118, 210, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(25, 118, 210, 0); }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
     }
 
-    /* ── Dashboard ── */
+    /* ── Main Dashboard ── */
     .dashboard {
       flex: 1;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* 50% split for static left and scrollable right panels */
+      gap: 24px;
+      padding: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      height: calc(100vh - 80px); /* Fill remaining space below header */
       overflow: hidden;
-      position: relative;
     }
 
-    /* ── Voice Panel ── */
+    /* ── Left Panel: Voice/Mic ── */
     .voice-panel {
-      flex: 1;
-      height: 100%;
+      background: var(--card-bg);
+      border-radius: 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       position: relative;
-      background: var(--white);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      height: 100%; /* Sized to dashboard height */
     }
 
+    /* Pulse Visuals */
     .mic-section {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 3rem;
+      margin-bottom: 20px;
     }
-
-    .mic-visual-container {
+    .pulse-container {
       position: relative;
       width: 200px;
       height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
+      margin-bottom: 30px;
     }
-
-    .pulse-rings {
+    .pulse-circle {
       position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%; height: 100%;
-      pointer-events: none;
-    }
-
-    .ring {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      background: var(--pulse-color);
+      background: var(--airtel-red);
       opacity: 0;
-      transform: scale(0.4);
-    }
-
-    .listening .ring { opacity: 0; } /* Hide default ring animation in listening mode, wait for VAD */
-    
-    .user-speaking .ring { 
-      animation: pulseOut 1.5s infinite cubic-bezier(0.25, 1, 0.5, 1); 
-      background: var(--pulse-color);
-      opacity: 0.6;
+      transform: scale(0.8);
+      pointer-events: none;
+      will-change: transform, opacity; /* High performance rendering optimization */
     }
     
-    .ai-speaking .ring { 
-      animation: pulseOut 1.2s infinite cubic-bezier(0.25, 1, 0.5, 1); 
-      background: rgba(25, 118, 210, 0.2);
-      opacity: 0.6;
-    }
-
-    .processing .mic-visual-container {
-      animation: breathingGlow 2s infinite ease-in-out;
-    }
-
-    @keyframes pulseOut {
-      0% { transform: scale(0.4); opacity: 0.8; }
-      100% { transform: scale(1.5); opacity: 0; }
-    }
-
-    @keyframes breathingGlow {
-      0%, 100% { filter: drop-shadow(0 0 5px rgba(237, 28, 36, 0.1)); }
-      50% { filter: drop-shadow(0 0 15px rgba(237, 28, 36, 0.3)); }
-    }
-
-    .mic-btn {
+    .pulse-icon {
       position: relative;
-      z-index: 10;
-      width: 80px; height: 80px;
+      z-index: 2;
+      width: 100px;
+      height: 100px;
+      background: white;
       border-radius: 50%;
-      border: none;
-      background: var(--white);
-      color: var(--airtel-red);
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+      color: var(--airtel-red);
+      font-size: 40px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
       transition: all 0.3s ease;
+    }
+    .ai-speaking .pulse-icon { color: #1976D2; }
+    .user-speaking .pulse-icon { transform: scale(1.1); background: var(--airtel-red); color: white; }
+
+    #statusLabel {
+      font-size: 1.1rem;
+      color: var(--text-gray);
+      font-weight: 500;
+    }
+
+    /* ── Controls Bar ── */
+    .controls-bar {
+      display: flex;
+      gap: 16px;
+      margin-top: 40px;
+    }
+    .btn-control {
+      padding: 14px 28px;
+      border-radius: 30px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: none;
+      font-size: 1rem;
       outline: none;
     }
-    .mic-btn.active {
-      background: var(--airtel-red);
-      color: var(--white);
-      box-shadow: 0 0 20px rgba(237, 28, 36, 0.4);
+    .btn-start {
+      background: linear-gradient(135deg, #FF4C52 0%, #D82F35 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(255, 76, 82, 0.3);
     }
-    .ai-speaking .mic-btn.active {
-      background: #1976D2;
-      box-shadow: 0 0 20px rgba(25, 118, 210, 0.4);
-    }
-    .mic-btn svg { width: 32px; height: 32px; }
-
-    .voice-label {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-gray);
-      min-height: 1.5em;
-    }
+    .btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 76, 82, 0.4); }
+    .btn-pause { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); }
+    .btn-pause.active { background: #FF9F43; color: white; border-color: #FF9F43; }
+    .btn-end { background: #1a1a1a; color: #888; border: 1px solid #333; }
+    .btn-control:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; }
 
     /* ── Chat Panel ── */
     .chat-panel {
-      width: 400px;
-      height: 100%;
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      background: #F4F4F7;
-      border-left: 1px solid var(--border);
+      overflow: hidden;
+      height: 100%; /* Sized to dashboard height */
     }
-
     .chat-header {
-      padding: 1.25rem 1.5rem;
-      background: var(--white);
+      padding: 20px;
       border-bottom: 1px solid var(--border);
-    }
-    .chat-header h2 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); }
-
-    .chat-messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .chat-messages::-webkit-scrollbar { width: 4px; }
-    .chat-messages::-webkit-scrollbar-thumb { background: #D1D1D6; border-radius: 4px; }
-
-    .msg { display: flex; flex-direction: column; max-width: 85%; animation: msgFade 0.3s ease; }
-    .msg.agent { align-self: flex-start; }
-    .msg.user { align-self: flex-end; }
-    .msg.system { align-self: center; opacity: 0.5; font-size: 0.75rem; }
-
-    .bubble { padding: 0.8rem 1.1rem; font-size: 0.9rem; line-height: 1.4; border-radius: 16px; }
-    .agent .bubble { background: var(--white); color: var(--text-dark); border-bottom-left-radius: 4px; }
-    .user .bubble { background: var(--airtel-red); color: var(--white); border-bottom-right-radius: 4px; }
-
-    @keyframes msgFade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* ── Debug Panel ── */
-    .debug-panel {
-      position: absolute;
-      bottom: 20px;
-      right: 420px;
-      width: 300px;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      color: #00FF00;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.7rem;
-      padding: 12px;
-      z-index: 1000;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.1);
-      transition: all 0.3s ease;
-      max-height: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .debug-panel.collapsed { height: 40px; overflow: hidden; }
-    .debug-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 6px;
-      cursor: pointer;
     }
-    .debug-header h3 { font-size: 0.75rem; text-transform: uppercase; color: #FFF; }
-    .debug-logs {
+    .chat-messages {
       flex: 1;
+      padding: 20px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 16px;
     }
-    .debug-log-entry { display: flex; gap: 8px; }
-    .debug-tag { font-weight: bold; min-width: 60px; }
-    .debug-msg { color: #DDD; }
+    .msg { display: flex; flex-direction: column; max-width: 85%; }
+    .msg.user { align-self: flex-end; }
+    .msg.agent { align-self: flex-start; }
+    .bubble {
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .user .bubble { background: var(--airtel-red); color: white; border-bottom-right-radius: 4px; }
+    .agent .bubble { background: rgba(255, 255, 255, 0.05); color: white; border-bottom-left-radius: 4px; border: 1px solid var(--border); }
 
-    @media (max-width: 1024px) {
-      .debug-panel { right: 20px; bottom: 20px; }
-    }el { width: 100%; height: 600px; }
+    /* ── Developer Debug Panel ── */
+    .debug-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      background: #000;
+      border: 1px solid #333;
+      border-radius: 12px;
+      font-family: 'Courier New', Courier, monospace;
+      z-index: 100;
+      transition: height 0.3s ease;
+      overflow: hidden;
     }
+    .debug-panel.collapsed { height: 44px; }
+    .debug-header {
+      padding: 10px 15px;
+      background: #222;
+      display: flex;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    .debug-logs {
+      height: 300px;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 11px;
+    }
+    .debug-log-entry { margin-bottom: 4px; border-bottom: 1px solid #111; padding-bottom: 2px; }
+
+    /* Animations */
+    .processing .pulse-icon { animation: glow 1.5s infinite; }
+    @keyframes glow { 0% { box-shadow: 0 0 10px rgba(255, 76, 82, 0.3); } 50% { box-shadow: 0 0 30px rgba(255, 76, 82, 0.6); } 100% { box-shadow: 0 0 10px rgba(255, 76, 82, 0.3); } }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <div class="header">
-    <img src="https://www.airtel.in/assets/images/airtel-logo-white.svg" alt="" class="header-logo" style="filter: invert(1);" onerror="this.style.display='none'">
-    <h1><span>airtel</span> Vaani 2.0</h1>
-    <div id="statusBadge" class="status-badge disconnected">
-      <span class="dot"></span>
-      <span id="statusText">Disconnected</span>
+  <header>
+    <div class="logo">
+      <i class="fas fa-signal logo-red"></i>
+      <span>Airtel <span class="logo-red">Vaani 2.0</span></span>
     </div>
-  </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      <span id="statusText">System Online</span>
+    </div>
+  </header>
 
-  <!-- Dashboard -->
   <div class="dashboard" id="dashboard">
-    <!-- Left Panel: Voice/Mic -->
     <div class="voice-panel">
       <div class="mic-section">
-        <div class="mic-visual-container">
-          <div class="pulse-rings">
-            <div class="ring"></div>
-            <div class="ring"></div>
-            <div class="ring"></div>
+        <div class="pulse-container">
+          <div class="pulse-circle"></div>
+          <div class="pulse-circle"></div>
+          <div class="pulse-circle"></div>
+          <div class="pulse-icon" id="mainIcon">
+            <i class="fas fa-microphone"></i>
           </div>
-          <button class="mic-btn" id="micBtn" aria-label="Start speaking">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-              <line x1="12" x2="12" y1="19" y2="22"/>
-            </svg>
-          </button>
         </div>
-        <div class="voice-label" id="micLabel">Tap to speak</div>
+        <div id="statusLabel">Ready to assist</div>
+      </div>
+      
+      <div class="controls-bar">
+        <button id="startBtn" class="btn-control btn-start">
+          <i class="fas fa-play"></i> Start Conversation
+        </button>
+        <button id="pauseBtn" class="btn-control btn-pause" disabled>
+          <i class="fas fa-pause"></i> Pause
+        </button>
+        <button id="endBtn" class="btn-control btn-end" disabled>
+          <i class="fas fa-stop"></i> End
+        </button>
       </div>
     </div>
 
-    <!-- Right Panel: Chat -->
     <div class="chat-panel">
       <div class="chat-header">
-        <h2>Live Transcription</h2>
+        <h2 style="font-size: 1.1rem; font-weight: 600;">Live Interaction</h2>
+        <i class="fas fa-comment-alt" style="color: var(--text-gray);"></i>
       </div>
-      <div class="chat-messages" id="chat">
-        <!-- Messages appear here -->
-      </div>
+      <div class="chat-messages" id="chat"></div>
     </div>
 
-    <!-- Developer Debug Panel -->
-    <div class="debug-panel" id="debugPanel">
+    <div class="debug-panel collapsed" id="debugPanel">
       <div class="debug-header" id="debugToggle">
-        <h3>Dev Debug Console</h3>
+        <h3 style="font-size: 0.8rem; margin: 0;">Dev Debug Console</h3>
         <span id="debugChevron">▾</span>
       </div>
-      <div class="provider-info" id="providerInfo">
-        <div class="provider-badge">STT: <span id="sttStatus">...</span></div>
-        <div class="provider-badge">LLM: <span id="llmStatus">...</span></div>
-        <div class="provider-badge">TTS: <span id="ttsStatus">...</span></div>
+      <div style="padding: 10px; border-bottom: 1px solid #222; font-size: 10px; color: #888;">
+        STT: <span id="sttStatus" style="color: #0F0;">Flux V2</span> | 
+        LLM: <span id="llmStatus" style="color: #0F0;">GPT-4o-mini</span> | 
+        TTS: <span id="ttsStatus" style="color: #0F0;">Aura</span>
       </div>
-      <div class="debug-logs" id="debugLogs">
-        <!-- Live logs will appear here -->
-      </div>
+      <div class="debug-logs" id="debugLogs"></div>
     </div>
   </div>
-
-  <style>
-    .provider-info {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 6px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      margin-bottom: 4px;
-    }
-    .provider-badge {
-      font-size: 0.65rem;
-      color: #888;
-      background: rgba(255,255,255,0.05);
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    .provider-badge span {
-      color: #00FF00;
-      font-weight: bold;
-    }
-  </style>
 
 <script>
 (function() {
-  // ── Configuration ──
-  const debugMode = true; // Set to true for dev testing
-
-  // ── DOM ──
+  const debugMode = true;
   const dashboard = document.getElementById('dashboard');
-  const micBtn    = document.getElementById('micBtn');
-  const micLabel  = document.getElementById('micLabel');
+  const startBtn  = document.getElementById('startBtn');
+  const pauseBtn  = document.getElementById('pauseBtn');
+  const endBtn    = document.getElementById('endBtn');
+  const statusLabel = document.getElementById('statusLabel');
+  const mainIcon  = document.getElementById('mainIcon');
   const chatEl    = document.getElementById('chat');
-  const statusBadge = document.getElementById('statusBadge');
-  const statusText  = document.getElementById('statusText');
-  const debugPanel  = document.getElementById('debugPanel');
   const debugLogs   = document.getElementById('debugLogs');
   const debugToggle = document.getElementById('debugToggle');
   const debugChevron = document.getElementById('debugChevron');
+  const debugPanel = document.getElementById('debugPanel');
 
-  // ── State ──
+  const STATES = {
+    IDLE: 'IDLE',
+    INITIALIZING: 'INITIALIZING',
+    PLAYING_GREETING: 'PLAYING_GREETING',
+    LISTENING: 'LISTENING',
+    USER_SPEAKING: 'USER_SPEAKING',
+    THINKING: 'THINKING',
+    AI_SPEAKING: 'AI_SPEAKING',
+    PAUSED: 'PAUSED',
+    CALL_ENDED: 'CALL_ENDED'
+  };
+
+  let currentState = STATES.IDLE;
   let ws = null;
   let isListening = false;
+  let isPaused = false;
+  let isGreetingMode = false;
   let isAgentSpeaking = false;
   let audioContext = null;
   let mediaStream = null;
   let processor = null;
   let analyser = null;
+  let aiAnalyser = null;
   let vadDataArray = null;
   let isUserActuallySpeaking = false;
-  let wsConnected = false;
-
-  // Audio playback
   let playCtx = null;
-  let playAnalyser = null;
-  let playDataArray = null;
   const OUTPUT_SAMPLE_RATE = 24000;
   let nextPlayTime = 0;
 
-  // ── Debug Logger ──
+  // Visualizer state variables
+  let smoothedUserVolume = 0;
+  let smoothedAiVolume = 0;
+  let lastUserSpeechLoggedTime = 0;
+  let lastAiSpeechLoggedTime = 0;
+
   function log(tag, message, isError = false) {
     if (!debugMode) return;
     const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const fullMsg = `[${tag}] ${message}`;
-    
-    if (isError) console.error(fullMsg);
-    else console.log(`%c${time} %c${fullMsg}`, 'color: #888', 'color: #00FF00');
-
     const entry = document.createElement('div');
     entry.className = 'debug-log-entry';
-    entry.innerHTML = `<span style="color:#888">${time}</span> <span class="debug-tag" style="color:${isError?'#FF4C52':'#00FF00'}">[${tag}]</span> <span class="debug-msg">${message}</span>`;
+    entry.innerHTML = `<span style="color:#888">${time}</span> <span style="color:${isError?'#FF4C52':'#00FF00'}">[${tag}]</span> <span>${message}</span>`;
     debugLogs.prepend(entry);
     if (debugLogs.children.length > 50) debugLogs.lastChild.remove();
   }
 
-  // Debug Panel Toggle
+  // Initialize fixed layout trace on startup
+  log('LAYOUT', 'Left panel fixed');
+  console.log('[LAYOUT] Left panel fixed');
+
   debugToggle.addEventListener('click', () => {
     const isCollapsed = debugPanel.classList.toggle('collapsed');
-    debugChevron.textContent = isCollapsed ? '▴' : '▾';
+    debugChevron.textContent = isCollapsed ? '▾' : '▴';
   });
 
-  // ── Real-time Voice Activity Detection (VAD) ──
-  function startVADLoop() {
-    if (!analyser) return;
-    
-    const checkVAD = () => {
-      if (!isListening) {
-        if (isUserActuallySpeaking) {
-          isUserActuallySpeaking = false;
-          log('VAD', 'Voice activity ended');
-          updateUIState();
-        }
-        return;
-      }
-
-      analyser.getByteFrequencyData(vadDataArray);
-      let sum = 0;
-      for (let i = 0; i < vadDataArray.length; i++) sum += vadDataArray[i];
-      const average = sum / vadDataArray.length;
-
-      const isSpeakingNow = average > 18;
-
-      if (isSpeakingNow !== isUserActuallySpeaking) {
-        isUserActuallySpeaking = isSpeakingNow;
-        log('VAD', isUserActuallySpeaking ? 'User speech detected' : 'User speech ended');
-        updateUIState();
-      }
-
-      if (isListening) requestAnimationFrame(checkVAD);
-    };
-    
-    requestAnimationFrame(checkVAD);
+  function setState(newState) {
+    if (currentState === newState) return;
+    currentState = newState;
+    log('STATE', `Transition → ${newState}`);
+    updateUIState();
   }
 
-  // ── AI Playback VAD ──
-  function monitorAIPlayback() {
-    if (!playAnalyser) return;
-    
-    const checkAI = () => {
-      if (!isAgentSpeaking) return;
+  function updateUIState() {
+    dashboard.classList.remove('listening', 'user-speaking', 'ai-speaking', 'processing', 'paused');
+    startBtn.disabled = (currentState !== STATES.IDLE && currentState !== STATES.CALL_ENDED);
+    pauseBtn.disabled = (currentState === STATES.IDLE || currentState === STATES.INITIALIZING || currentState === STATES.CALL_ENDED);
+    endBtn.disabled   = (currentState === STATES.IDLE || currentState === STATES.CALL_ENDED);
 
-      playAnalyser.getByteFrequencyData(playDataArray);
-      let sum = 0;
-      for (let i = 0; i < playDataArray.length; i++) sum += playDataArray[i];
-      const average = sum / playDataArray.length;
+    pauseBtn.innerHTML = isPaused ? '<i class="fas fa-play"></i> Resume' : '<i class="fas fa-pause"></i> Pause';
+    pauseBtn.classList.toggle('active', isPaused);
 
-      const isActuallySpeaking = average > 5; 
-      
-      const hasClass = dashboard.classList.contains('ai-speaking');
-      if (isActuallySpeaking && !hasClass) {
+    switch (currentState) {
+      case STATES.IDLE: statusLabel.textContent = 'Ready to assist'; break;
+      case STATES.INITIALIZING: statusLabel.textContent = 'Connecting to Vaani...'; break;
+      case STATES.PLAYING_GREETING:
+      case STATES.AI_SPEAKING:
         dashboard.classList.add('ai-speaking');
-        log('UI', 'AI Pulse animation ON');
-      } else if (!isActuallySpeaking && hasClass) {
-        dashboard.classList.remove('ai-speaking');
-        log('UI', 'AI Pulse animation OFF');
-      }
-
-      if (isAgentSpeaking) requestAnimationFrame(checkAI);
-    };
-    
-    requestAnimationFrame(checkAI);
+        statusLabel.textContent = 'Vaani is speaking...';
+        mainIcon.innerHTML = '<i class="fas fa-headset"></i>';
+        break;
+      case STATES.LISTENING:
+        dashboard.classList.add('listening');
+        statusLabel.textContent = 'Listening...';
+        mainIcon.innerHTML = '<i class="fas fa-microphone"></i>';
+        break;
+      case STATES.USER_SPEAKING:
+        dashboard.classList.add('listening', 'user-speaking');
+        statusLabel.textContent = 'Listening...';
+        mainIcon.innerHTML = '<i class="fas fa-microphone"></i>';
+        break;
+      case STATES.THINKING:
+        dashboard.classList.add('processing');
+        statusLabel.textContent = 'Vaani is thinking...';
+        break;
+      case STATES.PAUSED:
+        dashboard.classList.add('paused');
+        statusLabel.textContent = 'Conversation paused';
+        break;
+      case STATES.CALL_ENDED: statusLabel.textContent = 'Session ended'; break;
+    }
   }
 
-  // ── WebSocket ──
-  function connectWs() {
-    log('WS', 'Connecting to server...');
+  async function connectWs() {
     return new Promise((resolve) => {
-      if (ws && ws.readyState === WebSocket.OPEN) return resolve(true);
-
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
       ws = new WebSocket(`${proto}//${location.host}`);
       ws.binaryType = 'arraybuffer';
-
-      ws.onopen = () => {
-        wsConnected = true;
-        setStatus(true);
-        log('WS', 'Connected successfully');
-        resolve(true);
-      };
-
+      ws.onopen = () => resolve(true);
       ws.onmessage = (evt) => {
-        if (evt.data instanceof ArrayBuffer) {
-          handleAudioData(evt.data);
-        } else {
-          try {
-            const msg = JSON.parse(evt.data);
-            handleEvent(msg);
-          } catch (e) {
-            log('ERROR', 'Failed to parse WS message');
-          }
-        }
+        if (evt.data instanceof ArrayBuffer) handleAudioData(evt.data);
+        else handleEvent(JSON.parse(evt.data));
       };
-
-      ws.onclose = () => {
-        wsConnected = false;
-        setStatus(false);
-        log('WS', 'Connection closed');
-        resetToIdle();
-      };
-
-      ws.onerror = (e) => {
-        log('ERROR', 'WebSocket error occurred', true);
-        resolve(false);
-      };
+      ws.onerror = () => resolve(false);
+      ws.onclose = () => resetToIdle();
     });
   }
 
-  function setStatus(connected) {
-    statusBadge.className = 'status-badge ' + (connected ? 'connected' : 'disconnected');
-    statusText.textContent = connected ? 'Online' : 'Offline';
-    log('STATE', connected ? 'System Online' : 'System Offline');
-  }
-
   function handleEvent(msg) {
-    switch (msg.type) {
-      case 'ProviderStatus':
-        document.getElementById('sttStatus').textContent = msg.stt;
-        document.getElementById('llmStatus').textContent = msg.llm;
-        document.getElementById('ttsStatus').textContent = msg.tts;
-        log('TTS', `Provider: ElevenLabs (Voice ID active)`);
-        break;
-      case 'ConversationText':
-        log('AI', `${msg.role}: ${msg.content.substring(0, 40)}...`);
-        addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
-        if (msg.role === 'assistant' && (msg.subType === 'HOLD_REASSURANCE' || msg.subType === 'TIMEOUT_ESCALATION')) {
-          speakFiller(msg.content);
-        }
-        break;
-      case 'SpeechStarted':
-        log('VAD', 'Customer started speaking');
-        dashboard.classList.add('user-speaking');
-        stopPlayback();
-        stopFiller();
-        break;
-      case 'SpeechEnded':
-        log('VAD', 'Speech completion detected (Waiting for endpoint)');
-        break;
-      case 'UtteranceEnd':
-        log('VAD', 'Final endpoint detected. Processing response...');
-        dashboard.classList.remove('user-speaking');
-        break;
-      case 'UserStartedSpeaking':
-        log('STT', 'Barge-in detected');
-        stopPlayback();
-        stopFiller();
-        break;
-      case 'FunctionCallRequest':
-        log('STATE', 'FETCHING_DATA entered');
-        setHoldStatus(true, 'Checking details...');
-        break;
-      case 'FunctionCallResponse':
-        log('STATE', 'FETCHING_DATA completed');
-        setHoldStatus(false);
-        break;
-      case 'Error':
-        log('ERROR', msg.message, true);
-        addMessage('system', 'Error: ' + msg.message);
-        break;
-      default:
-        // Log transcriptions for debugging
-        if (msg.type === 'Transcript') {
-          const isFinal = msg.is_final;
-          log('STT', `${isFinal ? 'Final' : 'Interim'}: "${msg.text}"`);
-          if (msg.language) log('LANG', `Detected: ${msg.language}`);
-        } else {
-          log('WS', `Event: ${msg.type}`);
-        }
+    if (msg.type === 'SpeechStarted') { 
+      stopPlayback(); 
+      isGreetingMode = false;
+      isAgentSpeaking = false;
+      setState(STATES.USER_SPEAKING); 
     }
+    else if (msg.type === 'ConversationText') addMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content);
   }
-
-  function setHoldStatus(active, text = '') {
-    if (active) {
-      dashboard.classList.remove('listening', 'user-speaking', 'ai-speaking');
-      dashboard.classList.add('processing');
-      micLabel.textContent = text;
-      log('UI', 'Processing animation (Glow) ON');
-    } else {
-      dashboard.classList.remove('processing');
-      updateUIState();
-    }
-  }
-
-  // ── Filler Speech ──
-  function speakFiller(text) {
-    log('TTS', 'Falling back to Browser TTS for filler');
-    stopPlayback();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    const voices = window.speechSynthesis.getVoices();
-    const premiumVoice = voices.find(v => v.name.includes('Google UK English Female') || v.name.includes('Samantha'));
-    if (premiumVoice) utterance.voice = premiumVoice;
-    window.speechSynthesis.speak(utterance);
-    log('TTS', 'Browser filler playback started');
-  }
-
-  function stopFiller() { window.speechSynthesis.cancel(); }
 
   function addMessage(role, text) {
     const wrapper = document.createElement('div');
     wrapper.className = 'msg ' + role;
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.textContent = text;
-    wrapper.appendChild(bubble);
+    wrapper.innerHTML = `<div class="bubble">${text}</div>`;
     chatEl.appendChild(wrapper);
-    requestAnimationFrame(() => chatEl.scrollTop = chatEl.scrollHeight);
+    
+    // Smooth scrolling locally inside the container
+    chatEl.scrollTo({
+      top: chatEl.scrollHeight,
+      behavior: 'smooth'
+    });
+    
+    log('CHAT', 'Auto-scroll triggered');
+    console.log('[CHAT] Auto-scroll triggered');
   }
 
-  // ── Audio Flow ──
   async function startListening() {
-    log('MIC', 'Requesting microphone access...');
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
-      });
-      log('MIC', 'Access granted. Starting capture.');
-      
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
       const source = audioContext.createMediaStreamSource(mediaStream);
-      
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
       vadDataArray = new Uint8Array(analyser.frequencyBinCount);
+      processor = audioContext.createScriptProcessor(1024, 1, 1);
       source.connect(analyser);
-
-      processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processor.onaudioprocess = (e) => {
-        if (!isListening || !ws || ws.readyState !== WebSocket.OPEN) return;
-        const float32 = e.inputBuffer.getChannelData(0);
-        const int16 = new Int16Array(float32.length);
-        for (let i = 0; i < float32.length; i++) {
-          const s = Math.max(-1, Math.min(1, float32[i]));
-          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
-        ws.send(int16.buffer);
-      };
-
       source.connect(processor);
       processor.connect(audioContext.destination);
-
+      processor.onaudioprocess = (e) => {
+        if (!isListening || isPaused || isGreetingMode || !ws || ws.readyState !== WebSocket.OPEN) return;
+        const float32 = e.inputBuffer.getChannelData(0);
+        const int16 = new Int16Array(float32.length);
+        for (let i = 0; i < float32.length; i++) int16[i] = Math.max(-1, Math.min(1, float32[i])) * 0x7FFF;
+        ws.send(int16.buffer);
+      };
       isListening = true;
-      log('STATE', 'Listening started');
-      startVADLoop();
-      updateUIState();
-    } catch (err) {
-      log('ERROR', 'Microphone access failed', true);
-      resetToIdle();
-    }
+    } catch (e) { log('ERROR', 'Mic failed', true); }
   }
 
   function handleAudioData(buffer) {
-    if (!isListening) return;
-    
-    log('TTS', `Audio chunk received (${buffer.byteLength} bytes)`);
-    const ctx = ensurePlayCtx();
-    const view = new DataView(buffer);
-    const float32 = new Float32Array(buffer.byteLength / 2);
-    for (let i = 0; i < float32.length; i++) float32[i] = view.getInt16(i * 2, true) / 32768;
-
-    const audioBuf = ctx.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
-    audioBuf.copyToChannel(float32, 0);
-    const src = ctx.createBufferSource();
-    src.buffer = audioBuf;
-    src.connect(playAnalyser);
-    src.connect(ctx.destination);
-
-    const now = ctx.currentTime;
-    if (nextPlayTime < now) {
-      nextPlayTime = now + 0.1;
-      log('TTS', 'Playback stream started');
+    if (!playCtx) { 
+      playCtx = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE }); 
+      aiAnalyser = playCtx.createAnalyser();
+      aiAnalyser.fftSize = 256;
+      nextPlayTime = 0; 
     }
+    const audioBuf = playCtx.createBuffer(1, buffer.byteLength / 2, OUTPUT_SAMPLE_RATE);
+    const float32 = new Float32Array(buffer.byteLength / 2);
+    const view = new DataView(buffer);
+    for (let i = 0; i < float32.length; i++) float32[i] = view.getInt16(i * 2, true) / 32768;
+    audioBuf.copyToChannel(float32, 0);
+    const src = playCtx.createBufferSource();
+    src.buffer = audioBuf;
     
+    // Connect buffer source to AI analyser and then to playCtx destination
+    src.connect(aiAnalyser);
+    aiAnalyser.connect(playCtx.destination);
+    
+    const now = playCtx.currentTime;
+    if (nextPlayTime < now) nextPlayTime = now;
     src.start(nextPlayTime);
     
-    if (!isAgentSpeaking) {
+    if (isGreetingMode) setState(STATES.PLAYING_GREETING);
+    else {
       isAgentSpeaking = true;
-      log('TTS', 'Vaani speaking (ElevenLabs source confirmed)');
-      monitorAIPlayback();
-      updateUIState();
+      setState(STATES.AI_SPEAKING);
     }
 
     src.onended = () => {
-      if (ctx.currentTime >= nextPlayTime - 0.1) {
-        isAgentSpeaking = false;
-        log('TTS', 'Playback completed');
-        updateUIState();
+      if (playCtx.currentTime >= nextPlayTime - 0.1) {
+        if (isGreetingMode) { isGreetingMode = false; setState(STATES.LISTENING); }
+        else if (!isPaused) setState(STATES.LISTENING);
       }
     };
-
     nextPlayTime += audioBuf.duration;
   }
 
-  function ensurePlayCtx() {
-    if (!playCtx || playCtx.state === 'closed') {
-      playCtx = new AudioContext({ sampleRate: OUTPUT_SAMPLE_RATE });
-      playAnalyser = playCtx.createAnalyser();
-      playAnalyser.fftSize = 256;
-      playDataArray = new Uint8Array(playAnalyser.frequencyBinCount);
-      nextPlayTime = 0;
-    }
-    if (playCtx.state === 'suspended') playCtx.resume();
-    return playCtx;
-  }
-
   function stopPlayback() {
-    if (playCtx) { 
-      log('TTS', 'Playback interrupted');
-      playCtx.close(); 
-      playCtx = null; 
-      playAnalyser = null;
-    }
-    nextPlayTime = 0;
+    if (playCtx) { playCtx.close(); playCtx = null; }
     isAgentSpeaking = false;
-    updateUIState();
+    aiAnalyser = null;
   }
 
   function resetToIdle() {
-    log('STATE', 'Resetting to Idle');
     isListening = false;
+    isGreetingMode = false;
+    isPaused = false;
     isAgentSpeaking = false;
-    isUserActuallySpeaking = false;
+    if (ws) { ws.close(); ws = null; }
     if (processor) { processor.disconnect(); processor = null; }
     if (analyser) { analyser.disconnect(); analyser = null; }
     if (audioContext) { audioContext.close(); audioContext = null; }
     if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
     stopPlayback();
-    updateUIState();
+    setState(STATES.IDLE);
   }
 
-  function updateUIState() {
-    dashboard.classList.remove('listening', 'user-speaking', 'ai-speaking', 'processing');
-    micBtn.classList.remove('active');
-    
-    if (!isListening) {
-      micLabel.textContent = 'Tap to speak';
-      log('UI', 'Pulse animation OFF (Idle)');
-    } else if (isAgentSpeaking) {
-      micBtn.classList.add('active');
-      micLabel.textContent = 'Vaani is speaking...';
-    } else if (isUserActuallySpeaking) {
-      dashboard.classList.add('listening', 'user-speaking');
-      micBtn.classList.add('active');
-      micLabel.textContent = 'Listening...';
-      log('UI', 'Pulse animation ON (User Speaking)');
-    } else {
-      dashboard.classList.add('listening');
-      micBtn.classList.add('active');
-      micLabel.textContent = 'Waiting for speech...';
-      log('UI', 'Pulse animation OFF (Silence)');
-    }
-  }
+  // Unified voice-reactive visualizer loop
+  function startVisualizerLoop() {
+    const updateVisualizer = () => {
+      let volume = 0;
 
-  micBtn.addEventListener('click', async () => {
-    log('MIC', 'Mic button clicked');
-    if (isListening) {
-      resetToIdle();
-    } else {
-      micLabel.textContent = 'Connecting...';
-      const success = await connectWs();
-      if (success) {
-        startListening();
-      } else {
-        micLabel.textContent = 'Connection Failed';
+      // 1. User speaking dynamic analysis
+      if (isListening && !isPaused && analyser) {
+        const array = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteTimeDomainData(array);
+        let sum = 0;
+        for (let i = 0; i < array.length; i++) {
+          const v = (array[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / array.length);
+
+        // Filter out background noise floor
+        const threshold = 0.02;
+        const rawVol = rms > threshold ? rms : 0;
+        smoothedUserVolume = smoothedUserVolume * 0.75 + rawVol * 0.25;
+
+        // VAD Trigger
+        const speaking = smoothedUserVolume > 0.015;
+        if (speaking !== isUserActuallySpeaking) {
+          isUserActuallySpeaking = speaking;
+          if (isUserActuallySpeaking) {
+            if (currentState !== STATES.PLAYING_GREETING && currentState !== STATES.AI_SPEAKING) {
+              setState(STATES.USER_SPEAKING);
+            }
+          } else {
+            if (currentState === STATES.USER_SPEAKING) {
+              setState(STATES.LISTENING);
+            }
+          }
+        }
+
+        if (currentState === STATES.USER_SPEAKING) {
+          volume = smoothedUserVolume;
+          const now = Date.now();
+          if (now - lastUserSpeechLoggedTime > 1500) {
+            log('VAD', 'User speech detected');
+            log('UI', 'Pulse animation activated');
+            console.log('[VAD] User speech detected');
+            console.log('[UI] Pulse animation activated');
+            lastUserSpeechLoggedTime = now;
+          }
+        }
       }
+
+      // 2. AI speaking playback dynamic analysis
+      if ((currentState === STATES.AI_SPEAKING || currentState === STATES.PLAYING_GREETING) && aiAnalyser) {
+        const array = new Uint8Array(aiAnalyser.frequencyBinCount);
+        aiAnalyser.getByteTimeDomainData(array);
+        let sum = 0;
+        for (let i = 0; i < array.length; i++) {
+          const v = (array[i] - 128) / 128;
+          sum += v * v;
+        }
+        const rms = Math.sqrt(sum / array.length);
+
+        smoothedAiVolume = smoothedAiVolume * 0.8 + rms * 0.2;
+        volume = smoothedAiVolume;
+
+        if (volume > 0.01) {
+          const now = Date.now();
+          if (now - lastAiSpeechLoggedTime > 1500) {
+            log('TTS', 'AI speaking animation active');
+            log('UI', 'Pulse animation activated');
+            console.log('[TTS] AI speaking animation active');
+            console.log('[UI] Pulse animation activated');
+            lastAiSpeechLoggedTime = now;
+          }
+        }
+      }
+
+      // 3. Render dynamic pulse animation states
+      const circles = document.querySelectorAll('.pulse-circle');
+
+      if (currentState === STATES.USER_SPEAKING) {
+        circles.forEach((circle, index) => {
+          circle.style.backgroundColor = 'var(--airtel-red)';
+          const factor = (index + 1) * 0.5;
+          const scale = 1.0 + volume * 5.0 * factor;
+          const opacity = Math.min(0.8, volume * 4.0) / (index + 1);
+
+          circle.style.transform = `scale(${scale})`;
+          circle.style.opacity = volume > 0.01 ? opacity : 0;
+          circle.style.transition = 'transform 0.05s ease-out, opacity 0.05s ease-out';
+        });
+      } else if (currentState === STATES.AI_SPEAKING || currentState === STATES.PLAYING_GREETING) {
+        circles.forEach((circle, index) => {
+          circle.style.backgroundColor = '#1976D2'; // Premium Blue
+          const factor = (index + 1) * 0.5;
+          const scale = 1.0 + volume * 4.5 * factor;
+          const opacity = Math.min(0.7, volume * 3.5) / (index + 1);
+
+          circle.style.transform = `scale(${scale})`;
+          circle.style.opacity = volume > 0.01 ? opacity : 0;
+          circle.style.transition = 'transform 0.08s ease-out, opacity 0.08s ease-out';
+        });
+      } else if (currentState === STATES.THINKING || currentState === STATES.INITIALIZING) {
+        // Breathing glow effect
+        const time = Date.now() * 0.003;
+        const breathe = Math.sin(time) * 0.5 + 0.5; // 0 to 1
+        circles.forEach((circle, index) => {
+          circle.style.backgroundColor = 'var(--airtel-red)';
+          const scale = 1.0 + breathe * 0.25 * (index + 1) * 0.4;
+          const opacity = 0.1 + breathe * 0.15 / (index + 1);
+
+          circle.style.transform = `scale(${scale})`;
+          circle.style.opacity = opacity;
+          circle.style.transition = 'transform 0.1s linear, opacity 0.1s linear';
+        });
+      } else {
+        // IDLE, PAUSED, CALL_ENDED: static mic, no pulse
+        circles.forEach(circle => {
+          circle.style.transform = 'scale(0.8)';
+          circle.style.opacity = 0;
+          circle.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        });
+      }
+
+      requestAnimationFrame(updateVisualizer);
+    };
+    requestAnimationFrame(updateVisualizer);
+  }
+
+  // Start visualizer loop on load
+  startVisualizerLoop();
+
+  // Button Event Listeners
+  startBtn.addEventListener('click', async () => {
+    log('SESSION', 'Conversation started');
+    setState(STATES.INITIALIZING);
+    const success = await connectWs();
+    if (success) {
+      isGreetingMode = true;
+      startListening();
+      log('TTS', 'Welcome prompt triggered');
+    } else {
+      log('ERROR', 'Connection failed', true);
+      setState(STATES.IDLE);
     }
+  });
+
+  pauseBtn.addEventListener('click', async () => {
+    isPaused = !isPaused;
+    if (isPaused) {
+      log('SESSION', 'Paused');
+      setState(STATES.PAUSED);
+    } else {
+      log('SESSION', 'Resumed');
+      if (audioContext && audioContext.state === 'suspended') await audioContext.resume();
+      if (playCtx && playCtx.state === 'suspended') await playCtx.resume();
+      setState(isAgentSpeaking ? STATES.AI_SPEAKING : STATES.LISTENING);
+    }
+  });
+
+  endBtn.addEventListener('click', () => {
+    log('SESSION', 'Ended');
+    setState(STATES.CALL_ENDED);
+    setTimeout(resetToIdle, 1000);
   });
 
 })();
 </script>
-
 </body>
 </html>
