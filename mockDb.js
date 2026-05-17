@@ -35,7 +35,12 @@ for (let i = 0; i < 50; i++) {
 // Generate 50 Postpaid
 for (let i = 0; i < 50; i++) {
   const isBarred = Math.random() > 0.95;
-  const plan = Math.random() > 0.5 ? { name: "Infinity 599", rental: 599, data: "75GB rollover", ott: ["Netflix Basic", "Amazon Prime"] } : { name: "Family 999", rental: 999, data: "130GB rollover", ott: ["Netflix Standard", "Amazon Prime"] };
+  const plans = [
+    { name: "Infinity 399", rental: 399, price_without_tax: 399, price_with_tax: 471, data_benefits_gb: 40, ott_benefits: ["Airtel Xstream"] },
+    { name: "Infinity 599", rental: 599, price_without_tax: 599, price_with_tax: 707, data_benefits_gb: 75, ott_benefits: ["Airtel Xstream", "Amazon Prime"] },
+    { name: "Infinity 999", rental: 999, price_without_tax: 999, price_with_tax: 1179, data_benefits_gb: 150, ott_benefits: ["Netflix", "Amazon Prime", "Airtel Xstream", "Jio Hotstar"] }
+  ];
+  const plan = plans[Math.floor(Math.random() * plans.length)];
   const baseBill = plan.rental;
   const extraUsage = Math.random() > 0.7 ? Math.floor(Math.random() * 200) : 0;
   const tax = Math.floor((baseBill + extraUsage) * 0.18);
@@ -47,14 +52,18 @@ for (let i = 0; i < 50; i++) {
     account_type: "postpaid",
     active_plan_name: plan.name,
     active_plan_price: plan.rental,
-    data_balance: Math.floor(Math.random() * 70) + "GB remaining",
+    rental: plan.rental,
+    price_without_tax: plan.price_without_tax,
+    price_with_tax: plan.price_with_tax,
+    data_benefits_gb: plan.data_benefits_gb,
+    data_balance: Math.floor(Math.random() * plan.data_benefits_gb) + "GB remaining",
     billing_cycle: "1st to 30th",
     bill_amount: totalBill,
     bill_due_date: "15th of current month",
     bill_breakup: { base: baseBill, extra: extraUsage, tax: tax },
     account_status: isBarred ? "barred (unpaid bill)" : "active",
     email: `postpaid${i}@example.com`,
-    ott_benefits: plan.ott,
+    ott_benefits: plan.ott_benefits,
     complaints: [],
     outage: false
   });
@@ -67,6 +76,10 @@ customers.push({
   account_type: "postpaid",
   active_plan_name: "Infinity 549",
   active_plan_price: 549,
+  rental: 549,
+  price_without_tax: 549,
+  price_with_tax: 647,
+  data_benefits_gb: 40,
   data_balance: "22GB remaining",
   billing_cycle: "1st to 30th",
   bill_amount: 647,
@@ -87,8 +100,9 @@ const rechargeCatalogue = {
     { name: "Data Booster 3GB", price: 49, validity: "same as base plan", description: "3GB extra data" }
   ],
   postpaid: [
-    { name: "Infinity 549", price: 549, description: "40GB data, unlimited calls, Amazon Prime" },
-    { name: "Infinity 598", price: 598, description: "2GB daily data, unlimited calls, Netflix Basic" }
+    { name: "Infinity 399", price: 399, rental: 399, price_without_tax: 399, price_with_tax: 471, data_benefits_gb: 40, ott_benefits: ["Airtel Xstream"], description: "40GB data, unlimited calls, Airtel Xstream" },
+    { name: "Infinity 599", price: 599, rental: 599, price_without_tax: 599, price_with_tax: 707, data_benefits_gb: 75, ott_benefits: ["Airtel Xstream", "Amazon Prime"], description: "75GB data, unlimited calls, Amazon Prime, Airtel Xstream Play" },
+    { name: "Infinity 999", price: 999, rental: 999, price_without_tax: 999, price_with_tax: 1179, data_benefits_gb: 150, ott_benefits: ["Netflix", "Amazon Prime", "Airtel Xstream", "Jio Hotstar"], description: "150GB data, unlimited calls, Netflix, Amazon Prime, Airtel Xstream, Jio Hotstar" }
   ]
 };
 
